@@ -1,0 +1,31 @@
+<%- include('../partials/head', { title }) %>
+<section class="admin-head">
+  <h1>分类管理</h1>
+  <div class="admin-nav"><a href="/admin">返回后台</a></div>
+</section>
+<section class="panel">
+  <form method="post" action="/admin/categories" class="inline-grid">
+    <input name="name" placeholder="分类名称" required>
+    <select name="type">
+      <option value="subject">科目</option>
+      <option value="year">年份</option>
+      <option value="material_type">资料类型</option>
+    </select>
+    <input name="sort_order" type="number" value="0" placeholder="排序">
+    <button type="submit">新增分类</button>
+  </form>
+</section>
+<section class="columns-3">
+  <% [['科目', filters.subjects], ['年份', filters.years], ['资料类型', filters.materialTypes]].forEach(group => { %>
+    <div class="panel">
+      <h2><%= group[0] %></h2>
+      <% group[1].forEach(item => { %>
+        <div class="list-row">
+          <span><%= item.name %></span>
+          <form method="post" action="/admin/categories/<%= item.id %>/delete"><button class="danger" type="submit">删除</button></form>
+        </div>
+      <% }) %>
+    </div>
+  <% }) %>
+</section>
+<%- include('../partials/foot') %>

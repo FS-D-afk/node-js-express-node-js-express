@@ -1,0 +1,30 @@
+<%- include('../partials/head', { title }) %>
+<section class="hero">
+  <div>
+    <p class="eyebrow">本地自助售卖</p>
+    <h1>选择资料，扫码付款，上传截图后自动发货。</h1>
+  </div>
+  <div class="status-pill <%= settings.sales_enabled === '1' ? 'on' : 'off' %>">
+    <%= settings.sales_enabled === '1' ? '当前可下单' : '暂未开放' %>
+  </div>
+</section>
+
+<section class="grid">
+  <% products.forEach(product => { %>
+    <article class="card product-card">
+      <h2><a href="/products/<%= product.id %>"><%= product.title %></a></h2>
+      <p><%= product.description || '暂无简介' %></p>
+      <div class="card-foot">
+        <a class="button" href="/products/<%= product.id %>">查看资料</a>
+      </div>
+    </article>
+  <% }) %>
+</section>
+
+<% if (!products.length) { %>
+  <section class="empty">
+    <h2>还没有上架资料</h2>
+    <p>请先进入后台创建商品。</p>
+  </section>
+<% } %>
+<%- include('../partials/foot') %>

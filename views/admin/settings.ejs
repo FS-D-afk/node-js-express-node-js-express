@@ -1,0 +1,21 @@
+<%- include('../partials/head', { title }) %>
+<section class="admin-head">
+  <h1>系统配置</h1>
+  <div class="admin-nav"><a href="/admin">返回后台</a></div>
+</section>
+<form class="panel form-stack" method="post" action="/admin/settings" enctype="multipart/form-data">
+  <label>网站标题</label>
+  <input name="site_title" value="<%= settings.site_title || '' %>">
+  <label>公告</label>
+  <textarea name="announcement" rows="3"><%= settings.announcement || '' %></textarea>
+  <label>联系方式/售后说明</label>
+  <textarea name="contact" rows="3"><%= settings.contact || '' %></textarea>
+  <label>微信收款码</label>
+  <% if (settings.wechat_qr_path) { %>
+    <img class="qr small" src="<%= settings.wechat_qr_path %>" alt="当前收款码">
+  <% } %>
+  <input type="file" name="wechat_qr" accept="image/*">
+  <label class="check"><input type="checkbox" name="sales_enabled" value="1" <%= settings.sales_enabled === '1' ? 'checked' : '' %>> 开放下单</label>
+  <button type="submit">保存配置</button>
+</form>
+<%- include('../partials/foot') %>

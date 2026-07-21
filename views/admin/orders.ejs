@@ -1,0 +1,15 @@
+<%- include('../partials/head', { title }) %>
+<section class="admin-head">
+  <h1>订单管理</h1>
+  <div class="admin-nav">
+    <a href="/admin">返回后台</a>
+    <a href="/admin/orders">全部</a>
+    <a href="/admin/orders?status=review">待审核</a>
+    <a href="/admin/orders?status=paid">已支付</a>
+    <a href="/admin/exports/orders.csv">导出 CSV</a>
+  </div>
+</section>
+<section class="panel">
+  <%- include('order-table', { orders }) %>
+</section>
+<%- include('../partials/foot') %>

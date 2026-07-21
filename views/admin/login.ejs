@@ -1,0 +1,12 @@
+<%- include('../partials/head', { title }) %>
+<section class="auth-card">
+  <h1>后台登录</h1>
+  <form method="post" action="/admin/login">
+    <label>账号</label>
+    <input name="username" value="admin" required>
+    <label>密码</label>
+    <input name="password" type="password" required>
+    <button type="submit">登录</button>
+  </form>
+</section>
+<%- include('../partials/foot') %>

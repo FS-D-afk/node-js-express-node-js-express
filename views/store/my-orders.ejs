@@ -1,0 +1,54 @@
+<%- include('../partials/head', { title }) %>
+<section class="admin-head orders-head">
+  <div>
+    <p class="eyebrow">购买记录</p>
+    <h1>我的订单</h1>
+    <p class="hint">订单已绑定账号 <strong><%= user.email %></strong>。登录后可跨设备查看，已支付资料永久不限次数读取。</p>
+  </div>
+  <a class="button secondary" href="/">继续选购</a>
+</section>
+
+<% if (orders.length) { %>
+  <section class="panel order-history-panel">
+    <table class="table order-history-table">
+      <thead>
+        <tr>
+          <th>订单</th>
+          <th>商品</th>
+          <th>实付金额</th>
+          <th>状态</th>
+          <th>创建时间</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% orders.forEach(order => { %>
+          <tr>
+            <td><strong><%= order.order_no %></strong></td>
+            <td>
+              <div><%= order.product_title %></div>
+              <% if (order.proof_reason && order.status !== 'paid') { %>
+                <div class="muted-line"><%= order.proof_reason %></div>
+              <% } %>
+            </td>
+            <td>￥<%= Number(order.pay_amount).toFixed(2) %></td>
+            <td><span class="order-status <%= order.status %>"><%= statusLabels[order.status] || order.status %></span></td>
+            <td><%= order.created_at %></td>
+            <td>
+              <a class="button <%= order.status === 'paid' ? '' : 'secondary' %>" href="<%= orderUrl(order) %>">
+                <%= order.status === 'paid' ? '查看发货' : '查看详情' %>
+              </a>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </section>
+<% } else { %>
+  <section class="empty">
+    <h2>还没有订单</h2>
+    <p>使用当前账号购买后，订单会永久保存在这里。</p>
+    <a class="button" href="/">去选购资料</a>
+  </section>
+<% } %>
+<%- include('../partials/foot') %>

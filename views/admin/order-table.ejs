@@ -1,0 +1,45 @@
+<table class="table">
+  <thead>
+    <tr>
+      <th>订单</th>
+      <th>商品</th>
+      <th>用户账号</th>
+      <th>金额</th>
+      <th>状态</th>
+      <th>时间</th>
+      <th>操作</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% orders.forEach(order => { %>
+      <tr>
+        <td><%= order.order_no %></td>
+        <td>
+          <strong><%= order.product_title %></strong>
+          <% if (order.proof_id) { %>
+            <div class="muted-line">识别金额：<%= order.proof_amount !== null && order.proof_amount !== undefined ? '￥' + Number(order.proof_amount).toFixed(2) : '无' %></div>
+          <% } %>
+        </td>
+        <td><%= order.user_email || '历史游客订单' %></td>
+        <td>￥<%= Number(order.pay_amount).toFixed(2) %></td>
+        <td><span class="tag"><%= order.status %></span></td>
+        <td><%= order.created_at %></td>
+        <td class="actions">
+          <% if (order.proof_id) { %>
+            <a href="/admin/proofs/<%= order.proof_id %>" target="_blank">截图</a>
+          <% } %>
+          <% if (['pending', 'review'].includes(order.status)) { %>
+            <form method="post" action="/admin/orders/<%= order.id %>/confirm"><button type="submit">确认</button></form>
+            <form method="post" action="/admin/orders/<%= order.id %>/cancel"><button class="danger" type="submit">取消</button></form>
+          <% } %>
+          <% if (order.status === 'paid') { %>
+            <a href="/admin/orders/<%= order.id %>/delivery" target="_blank">发货页</a>
+          <% } %>
+        </td>
+      </tr>
+    <% }) %>
+  </tbody>
+</table>
+<% if (!orders.length) { %>
+  <p class="hint">暂无订单。</p>
+<% } %>

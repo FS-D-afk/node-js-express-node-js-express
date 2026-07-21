@@ -1,0 +1,20 @@
+<%- include('../partials/head', { title }) %>
+<section class="auth-shell">
+  <div class="auth-card">
+    <p class="eyebrow">免费注册</p>
+    <h1>创建购买账号</h1>
+    <p class="hint">只需要邮箱和密码，不发送短信，也不产生短信费用。</p>
+    <form method="post" action="/register">
+      <input type="hidden" name="next" value="<%= next %>">
+      <label for="register-email">邮箱</label>
+      <input id="register-email" name="email" type="email" autocomplete="email" maxlength="254" value="<%= email %>" required>
+      <label for="register-password">设置密码</label>
+      <input id="register-password" name="password" type="password" autocomplete="new-password" minlength="8" required>
+      <label for="register-password-confirm">确认密码</label>
+      <input id="register-password-confirm" name="password_confirm" type="password" autocomplete="new-password" minlength="8" required>
+      <button type="submit">注册并登录</button>
+    </form>
+    <p class="auth-switch">已有账号？<a href="/login?next=<%= encodeURIComponent(next) %>&email=<%= encodeURIComponent(email) %>">直接登录</a></p>
+  </div>
+</section>
+<%- include('../partials/foot') %>

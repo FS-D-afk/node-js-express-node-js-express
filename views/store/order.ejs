@@ -1,0 +1,37 @@
+<%- include('../partials/head', { title }) %>
+<section class="order-layout" data-order-status data-order-no="<%= order.order_no %>">
+  <div class="panel">
+    <p class="eyebrow">订单号</p>
+    <h1><%= order.order_no %></h1>
+    <p><%= order.product_title %></p>
+    <dl class="money-box single-money">
+      <div>
+        <dt>需要支付的金额</dt>
+        <dd class="pay-amount">￥<%= Number(order.pay_amount).toFixed(2) %></dd>
+      </div>
+    </dl>
+    <p class="hint">付款后上传能清楚显示付款金额的截图即可。</p>
+    <p class="status-line">当前状态：<strong data-status-text><%= statusLabel %></strong></p>
+    <% if (order.status === 'paid') { %>
+      <a class="button primary" href="/delivery/<%= order.order_no %>">查看发货信息</a>
+    <% } %>
+  </div>
+
+  <div class="panel pay-panel">
+    <h2>微信收款码</h2>
+    <% if (settings.wechat_qr_path) { %>
+      <img class="qr" src="<%= settings.wechat_qr_path %>" alt="微信收款码">
+    <% } else { %>
+      <div class="qr placeholder">后台上传收款码后显示</div>
+    <% } %>
+    <p class="hint pay-reminder">付款完成页或账单详情页均可，金额清晰即可（不要尝试上传可爱的小猫图片，没有用滴，主包会在后台看着）</p>
+    <% if (['pending', 'review'].includes(order.status)) { %>
+      <form method="post" action="/orders/<%= order.order_no %>/proofs" enctype="multipart/form-data" class="upload-form">
+        <label>上传付款成功截图</label>
+        <input type="file" name="proof" accept="image/*" required>
+        <button type="submit">上传并校验金额</button>
+      </form>
+    <% } %>
+  </div>
+</section>
+<%- include('../partials/foot') %>

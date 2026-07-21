@@ -1,0 +1,13 @@
+<%- include('../partials/head', { title }) %>
+<section class="delivery">
+  <p class="eyebrow">发货信息</p>
+  <h1><%= order.product_title %></h1>
+  <p><%= order.file_note || '' %></p>
+  <div class="copy-box single">
+    <label>百度网盘信息</label>
+    <textarea readonly rows="4" data-copy-target><%= order.delivery_text || '暂无网盘信息' %></textarea>
+    <button type="button" data-copy="<%= order.delivery_text || '' %>">复制百度网盘信息</button>
+  </div>
+  <p class="hint">该订单已完成购买，发货信息可永久不限次数查看。请通过“我的订单”进入，账号内可永久不限次数查看。</p>
+</section>
+<%- include('../partials/foot') %>
