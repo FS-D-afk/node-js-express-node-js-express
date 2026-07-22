@@ -15,6 +15,7 @@ const { db, initDb, get, all, run } = require('../src/db');
 const orders = require('../src/services/orders');
 const users = require('../src/services/users');
 const { findMatchedAmount } = require('../src/services/ocr');
+const { resolveProofPath, toStoredProofPath } = require('../src/upload');
 
 function closeDb() {
   return new Promise((resolve) => db.close(() => resolve()));
@@ -43,6 +44,13 @@ function closeDb() {
   }
   if (!orders.canViewDelivery({ status: 'paid', delivery_views: 999999 })) {
     throw new Error('Paid orders should have unlimited delivery access');
+  }
+  const legacyProofPath = 'C:\\old-project\\data\\uploads\\proofs\\example.png';
+  if (!resolveProofPath(legacyProofPath).endsWith(path.join('data', 'uploads', 'proofs', 'example.png'))) {
+    throw new Error('Legacy proof path resolution failed');
+  }
+  if (toStoredProofPath({ filename: 'example.png' }) !== 'data/uploads/proofs/example.png') {
+    throw new Error('Portable proof path storage failed');
   }
 
   const product = await run(

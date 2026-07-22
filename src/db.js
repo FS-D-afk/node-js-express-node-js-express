@@ -5,7 +5,11 @@ const bcrypt = require('bcryptjs');
 
 const DEFAULT_ANNOUNCEMENT = '所有用户按商品标价支付。上传清晰的付款截图后，系统只核对截图金额与订单金额，匹配即可自动发货。';
 
-const dbPath = path.resolve(process.env.DATABASE_PATH || 'data/app.db');
+const projectRoot = path.resolve(__dirname, '..');
+const configuredDbPath = process.env.DATABASE_PATH || 'data/app.db';
+const dbPath = path.isAbsolute(configuredDbPath)
+  ? configuredDbPath
+  : path.resolve(projectRoot, configuredDbPath);
 fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
 const db = new sqlite3.Database(dbPath);
@@ -131,6 +135,24 @@ async function syncProductsFromLegacySkus() {
       delivery_text: nextDeliveryText,
       is_active: product.is_active,
     });
+  }
+}
+
+
+function normalizeStoredProofPath(imagePath) {
+  const normalized = String(imagePath || '').replace(/\\/g, '/');
+  const fileName = path.posix.basename(normalized);
+  if (!fileName || fileName === '.' || fileName === '..') return '';
+  return path.posix.join('data', 'uploads', 'proofs', fileName);
+}
+
+async function normalizeStoredProofPaths() {
+  const proofs = await all('SELECT id, image_path FROM payment_proofs');
+  for (const proof of proofs) {
+    const normalizedPath = normalizeStoredProofPath(proof.image_path);
+    if (normalizedPath && normalizedPath !== proof.image_path) {
+      await run('UPDATE payment_proofs SET image_path = ? WHERE id = ?', [normalizedPath, proof.id]);
+    }
   }
 }
 
@@ -261,6 +283,7 @@ async function initDb() {
   await ensureColumn('orders', "customer_token TEXT NOT NULL DEFAULT ''");
   await ensureColumn('orders', 'user_id INTEGER');
   await ensureColumn('payment_proofs', "transaction_no TEXT NOT NULL DEFAULT ''");
+  await normalizeStoredProofPaths();
 
   const duplicateActiveOrders = await all(`
     SELECT user_id, product_id, GROUP_CONCAT(id) AS ids

@@ -1,4 +1,4 @@
-const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const bcrypt = require('bcryptjs');
 
@@ -8,7 +8,7 @@ const catalog = require('../services/catalog');
 const orders = require('../services/orders');
 const users = require('../services/users');
 const { setSetting } = require('../services/settings');
-const { qrUpload, productDetailUpload } = require('../upload');
+const { qrUpload, productDetailUpload, resolveProofPath } = require('../upload');
 
 const router = express.Router();
 
@@ -189,7 +189,11 @@ router.get('/proofs/:id', requireAdmin, async (req, res, next) => {
   try {
     const proof = await get('SELECT * FROM payment_proofs WHERE id = ?', [req.params.id]);
     if (!proof) return res.status(404).send('not found');
-    res.sendFile(path.resolve(proof.image_path));
+    const proofPath = resolveProofPath(proof.image_path);
+    if (!proofPath || !fs.existsSync(proofPath)) {
+      return res.status(404).send('付款截图文件不存在');
+    }
+    res.sendFile(proofPath);
   } catch (error) {
     next(error);
   }

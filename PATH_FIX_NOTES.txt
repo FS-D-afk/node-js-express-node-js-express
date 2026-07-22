@@ -1,0 +1,14 @@
+项目目录移动修复说明
+
+已完成：
+1. payment_proofs.image_path 改为保存相对路径。
+2. 现有数据库中的 23 条旧绝对路径已转换。
+3. 后台读取历史截图时，会自动从当前项目 data/uploads/proofs 目录定位。
+4. data、public/uploads 和数据库路径不再依赖启动命令的当前工作目录。
+5. 已移除无须打包的 app.db-wal 和 app.db-shm 临时文件。
+
+启动方式：
+在项目根目录执行 npm start，然后访问 http://localhost:3000
+
+原报错图片已确认存在：
+data/uploads/proofs/1784620948604-fc11564a60235638.png

@@ -4,6 +4,7 @@ const path = require('path');
 const { execFile } = require('child_process');
 
 const { run } = require('../db');
+const { toStoredProofPath } = require('../upload');
 const { nearlyEqualMoney } = require('../utils/money');
 const { markPaid, markReview } = require('./orders');
 
@@ -167,7 +168,7 @@ async function saveProof(order, file) {
      VALUES (?, ?, ?, ?, ?, '', ?, ?)`,
     [
       order.id,
-      file.path,
+      toStoredProofPath(file),
       fileHash,
       text,
       matchedAmount || null,

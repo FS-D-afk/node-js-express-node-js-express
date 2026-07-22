@@ -3,9 +3,10 @@ const path = require('path');
 const multer = require('multer');
 const { randomToken } = require('./utils/tokens');
 
-const uploadRoot = path.resolve('data/uploads');
+const projectRoot = path.resolve(__dirname, '..');
+const uploadRoot = path.join(projectRoot, 'data', 'uploads');
 const proofDir = path.join(uploadRoot, 'proofs');
-const publicDir = path.resolve('public/uploads');
+const publicDir = path.join(projectRoot, 'public', 'uploads');
 const qrDir = path.join(publicDir, 'qr');
 const productDetailDir = path.join(publicDir, 'product-details');
 
@@ -13,6 +14,25 @@ for (const dir of [proofDir, qrDir, productDetailDir]) {
   fs.mkdirSync(dir, { recursive: true });
 }
 
+function proofFileName(fileOrPath) {
+  const value = typeof fileOrPath === 'object' && fileOrPath
+    ? fileOrPath.filename || fileOrPath.path
+    : fileOrPath;
+  const normalized = String(value || '').replace(/\\/g, '/');
+  const fileName = path.posix.basename(normalized);
+  return fileName && fileName !== '.' && fileName !== '..' ? fileName : '';
+}
+
+function toStoredProofPath(fileOrPath) {
+  const fileName = proofFileName(fileOrPath);
+  if (!fileName) throw new Error('付款截图路径无效。');
+  return path.posix.join('data', 'uploads', 'proofs', fileName);
+}
+
+function resolveProofPath(storedPath) {
+  const fileName = proofFileName(storedPath);
+  return fileName ? path.join(proofDir, fileName) : '';
+}
 
 function isSupportedImageFile(filePath) {
   try {
@@ -80,4 +100,6 @@ module.exports = {
   qrUpload,
   productDetailUpload,
   isSupportedImageFile,
+  toStoredProofPath,
+  resolveProofPath,
 };
