@@ -1,0 +1,19 @@
+<%- include('../partials/head', { title }) %>
+<section class="auth-shell">
+  <div class="auth-card">
+    <p class="eyebrow">账号登录</p>
+    <h1>请先登录后使用系统</h1>
+    <p class="hint">系统已启用强制登录。无需短信验证码，登录状态默认保持 30 天，订单会绑定邮箱账号。</p>
+    <form method="post" action="/login">
+      <input type="hidden" name="next" value="<%= next %>">
+      <label for="login-email">邮箱</label>
+      <input id="login-email" name="email" type="email" autocomplete="email" maxlength="254" value="<%= email %>" required>
+      <label for="login-password">密码</label>
+      <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+      <button type="submit">登录</button>
+    </form>
+    <p class="auth-switch">还没有账号？<a href="/register?next=<%= encodeURIComponent(next) %>&email=<%= encodeURIComponent(email) %>">免费注册</a></p>
+    <p class="muted-line">忘记密码时，请联系管理员在后台重置。</p>
+  </div>
+</section>
+<%- include('../partials/foot') %>

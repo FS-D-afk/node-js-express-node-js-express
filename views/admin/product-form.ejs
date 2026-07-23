@@ -1,0 +1,36 @@
+<%- include('../partials/head', { title }) %>
+<section class="admin-head">
+  <h1><%= title %></h1>
+  <div class="admin-nav"><a href="/admin/products">返回商品</a></div>
+</section>
+<form class="panel form-stack" method="post" action="<%= action %>" enctype="multipart/form-data">
+  <label>商品标题</label>
+  <input name="title" value="<%= product.title || '' %>" required>
+
+  <label>支付价格</label>
+  <input name="price" type="number" step="0.01" min="0" value="<%= Number(product.price || 0).toFixed(2) %>" required>
+
+  <label>商品介绍</label>
+  <textarea name="description" rows="4"><%= product.description || '' %></textarea>
+
+  <label>文件详细说明</label>
+  <textarea name="file_note" rows="5" placeholder="这里写给客户看的说明，比如复习重点、适用范围、更新说明"><%= product.file_note || '' %></textarea>
+
+  <label>文件详细图片</label>
+  <input name="detail_image_file" type="file" accept="image/*">
+  <% if (product.detail_image) { %>
+    <div class="hint">当前图片</div>
+    <img class="detail-image" src="<%= product.detail_image %>" alt="当前文件详细图片">
+  <% } %>
+  <input name="detail_image_url" value="<%= product.detail_image || '' %>" placeholder="如果不上传本机图片，可填图片链接">
+
+  <label>百度网盘信息</label>
+  <textarea name="delivery_text" rows="4" placeholder="链接：https://pan.baidu.com/s/xxx 提取码：abcd"><%= product.delivery_text || '' %></textarea>
+
+  <label>封面图片 URL，可不填</label>
+  <input name="cover_image" value="<%= product.cover_image || '' %>">
+
+  <label class="check"><input type="checkbox" name="is_active" value="1" <%= product.is_active === 0 ? '' : 'checked' %>> 上架</label>
+  <button type="submit">保存商品</button>
+</form>
+<%- include('../partials/foot') %>

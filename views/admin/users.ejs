@@ -1,0 +1,47 @@
+<%- include('../partials/head', { title }) %>
+<section class="admin-head">
+  <div>
+    <h1>用户管理</h1>
+    <p class="hint">管理员可为忘记密码的用户设置临时密码。重置后，该用户所有已登录设备会自动退出。</p>
+  </div>
+  <div class="admin-nav"><a href="/admin">返回后台</a></div>
+</section>
+
+<form class="panel user-search" method="get" action="/admin/users">
+  <input type="search" name="search" value="<%= search %>" placeholder="按邮箱搜索用户">
+  <button type="submit">搜索</button>
+  <% if (search) { %><a class="button secondary" href="/admin/users">清除</a><% } %>
+</form>
+
+<section class="panel">
+  <table class="table users-table">
+    <thead>
+      <tr>
+        <th>邮箱</th>
+        <th>订单</th>
+        <th>已支付金额</th>
+        <th>注册时间</th>
+        <th>重置密码</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% users.forEach(item => { %>
+        <tr>
+          <td><strong><%= item.email %></strong></td>
+          <td><%= item.order_count || 0 %></td>
+          <td>￥<%= Number(item.paid_total || 0).toFixed(2) %></td>
+          <td><%= item.created_at %></td>
+          <td>
+            <form class="reset-password-form" method="post" action="/admin/users/<%= item.id %>/reset-password">
+              <input type="password" name="new_password" minlength="8" autocomplete="new-password" placeholder="新密码，至少 8 位" required>
+              <input type="password" name="password_confirm" minlength="8" autocomplete="new-password" placeholder="再次输入新密码" required>
+              <button type="submit" data-confirm="确定重置该用户密码并退出其全部设备吗？">确认重置</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% if (!users.length) { %><p class="hint">没有找到用户。</p><% } %>
+</section>
+<%- include('../partials/foot') %>

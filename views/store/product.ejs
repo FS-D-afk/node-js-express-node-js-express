@@ -1,0 +1,24 @@
+<%- include('../partials/head', { title }) %>
+<section class="detail">
+  <div>
+    <h1><%= product.title %></h1>
+    <p class="lead"><%= product.description || '暂无介绍' %></p>
+
+    <div class="action-row">
+      <button type="button" class="secondary" data-file-note-toggle>查看文件详情</button>
+      <form method="post" action="/orders">
+        <input type="hidden" name="product_id" value="<%= product.id %>">
+        <button type="submit" <%= settings.sales_enabled !== '1' ? 'disabled' : '' %>>立即购买</button>
+      </form>
+    </div>
+
+    <section class="file-note-box" data-file-note-panel hidden>
+      <h2>文件详细信息（图片 + 文字）</h2>
+      <% if (product.detail_image) { %>
+        <img class="detail-image" src="<%= product.detail_image %>" alt="文件详细图片">
+      <% } %>
+      <p><%= product.file_note || '暂无详细说明' %></p>
+    </section>
+  </div>
+</section>
+<%- include('../partials/foot') %>

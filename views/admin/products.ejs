@@ -1,0 +1,35 @@
+<%- include('../partials/head', { title }) %>
+<section class="admin-head">
+  <h1>商品管理</h1>
+  <div class="admin-nav">
+    <a href="/admin">返回后台</a>
+    <a href="/admin/products/new">新增商品</a>
+  </div>
+</section>
+<section class="panel">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>商品</th>
+        <th>状态</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% products.forEach(product => { %>
+        <tr>
+          <td>
+            <strong><%= product.title %></strong>
+            <div class="muted-line"><%= product.description || '暂无介绍' %></div>
+          </td>
+          <td><%= product.is_active ? '上架' : '下架' %></td>
+          <td class="actions">
+            <a href="/admin/products/<%= product.id %>/edit">编辑</a>
+            <form method="post" action="/admin/products/<%= product.id %>/delete"><button class="danger" type="submit">删除</button></form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>
+<%- include('../partials/foot') %>

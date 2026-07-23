@@ -1,0 +1,23 @@
+<%- include('../partials/head', { title }) %>
+<section class="admin-head">
+  <h1>后台首页</h1>
+  <div class="admin-nav">
+    <a href="/admin/products">商品</a>
+    <a href="/admin/orders">订单</a>
+    <a href="/admin/users">用户</a>
+    <a href="/admin/settings">配置</a>
+    <a href="/admin/password">改密码</a>
+  </div>
+</section>
+<section class="stat-grid">
+  <div class="stat"><span>总订单</span><strong><%= stats.total_orders || 0 %></strong></div>
+  <div class="stat"><span>已收款</span><strong>￥<%= Number(stats.revenue || 0).toFixed(2) %></strong></div>
+  <div class="stat"><span>待审核</span><strong><%= stats.review_orders || 0 %></strong></div>
+  <div class="stat"><span>待付款</span><strong><%= stats.pending_orders || 0 %></strong></div>
+  <div class="stat"><span>注册用户</span><strong><%= stats.total_users || 0 %></strong></div>
+</section>
+<section class="panel">
+  <h2>最近订单</h2>
+  <%- include('order-table', { orders }) %>
+</section>
+<%- include('../partials/foot') %>

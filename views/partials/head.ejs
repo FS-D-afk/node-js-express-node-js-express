@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> - <%= settings.site_title || '资料售卖' %></title>
+  <link rel="stylesheet" href="/public/css/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="<%= user ? '/' : '/login' %>"><%= settings.site_title || '资料售卖' %></a>
+    <nav>
+      <a href="/">前台</a>
+      <% if (user) { %>
+        <a href="/my-orders">我的订单</a>
+        <a href="/account/password">改密码</a>
+        <span class="account-email" title="<%= user.email %>"><%= user.email %></span>
+        <form method="post" action="/logout" class="inline-form"><button type="submit" class="secondary">退出账号</button></form>
+      <% } else { %>
+        <a href="/login">用户登录</a>
+        <a href="/register">免费注册</a>
+      <% } %>
+      <% if (admin) { %>
+        <a href="/admin">后台</a>
+        <form method="post" action="/admin/logout" class="inline-form"><button type="submit">退出后台</button></form>
+      <% } else { %>
+        <a href="/admin/login">后台登录</a>
+      <% } %>
+    </nav>
+  </header>
+  <% if (settings.announcement) { %>
+    <div class="notice"><%= settings.announcement %></div>
+  <% } %>
+  <% if (flash && flash.modal) { %>
+    <div class="modal-backdrop" data-modal-backdrop>
+      <section class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="flash-modal-title">
+        <div class="modal-icon" aria-hidden="true">!</div>
+        <h2 id="flash-modal-title"><%= flash.title || '操作失败' %></h2>
+        <p><%= flash.message %></p>
+        <button type="button" data-modal-close autofocus>确定</button>
+      </section>
+    </div>
+  <% } else if (flash) { %>
+    <div class="flash <%= flash.type %>"><%= flash.message %></div>
+  <% } %>
+  <main class="page">
