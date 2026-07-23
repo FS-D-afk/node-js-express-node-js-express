@@ -8,6 +8,8 @@ const configuredLoginDays = Number(process.env.USER_LOGIN_DAYS || 30);
 const LOGIN_DAYS = Number.isFinite(configuredLoginDays)
   ? Math.max(1, Math.floor(configuredLoginDays))
   : 30;
+const MIN_PASSWORD_LENGTH = 12;
+const DUMMY_PASSWORD_HASH = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
 
 function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
@@ -32,18 +34,24 @@ function safeUser(row) {
   };
 }
 
+function passwordLengthError(prefix = '密码') {
+  return `${prefix}至少需要 ${MIN_PASSWORD_LENGTH} 位。`;
+}
+
 async function createUser(emailValue, password) {
   const email = normalizeEmail(emailValue);
   if (!isValidEmail(email)) {
     throw new Error('请输入有效的邮箱地址。');
   }
-  if (String(password || '').length < 8) {
-    throw new Error('密码至少需要 8 位。');
+  if (String(password || '').length < MIN_PASSWORD_LENGTH) {
+    throw new Error(passwordLengthError());
   }
 
   const existing = await get('SELECT id FROM users WHERE email = ? COLLATE NOCASE', [email]);
   if (existing) {
-    throw new Error('该邮箱已注册，请直接登录。');
+    const error = new Error('无法创建账号，请检查输入，或尝试登录。');
+    error.code = 'EMAIL_ALREADY_EXISTS';
+    throw error;
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
@@ -57,11 +65,20 @@ async function createUser(emailValue, password) {
 
 async function verifyCredentials(emailValue, password) {
   const email = normalizeEmail(emailValue);
-  if (!email || !password) return null;
+  const passwordValue = String(password || '');
+
+  if (!email || !passwordValue) {
+    await bcrypt.compare(passwordValue || 'invalid-password', DUMMY_PASSWORD_HASH);
+    return null;
+  }
 
   const user = await get('SELECT * FROM users WHERE email = ? COLLATE NOCASE', [email]);
-  if (!user || user.status !== 'active') return null;
-  if (!(await bcrypt.compare(password, user.password_hash))) return null;
+  const candidateHash = user && user.status === 'active'
+    ? user.password_hash
+    : DUMMY_PASSWORD_HASH;
+  const matches = await bcrypt.compare(passwordValue, candidateHash);
+
+  if (!user || user.status !== 'active' || !matches) return null;
   return safeUser(user);
 }
 
@@ -181,10 +198,9 @@ async function listUsers(search = '') {
   );
 }
 
-
 async function changePassword(userId, currentPassword, newPassword) {
-  if (String(newPassword || '').length < 8) {
-    throw new Error('新密码至少需要 8 位。');
+  if (String(newPassword || '').length < MIN_PASSWORD_LENGTH) {
+    throw new Error(passwordLengthError('新密码'));
   }
 
   const user = await get('SELECT * FROM users WHERE id = ?', [userId]);
@@ -214,8 +230,8 @@ async function changePassword(userId, currentPassword, newPassword) {
 }
 
 async function resetPasswordByAdmin(userId, newPassword) {
-  if (String(newPassword || '').length < 8) {
-    throw new Error('新密码至少需要 8 位。');
+  if (String(newPassword || '').length < MIN_PASSWORD_LENGTH) {
+    throw new Error(passwordLengthError('新密码'));
   }
 
   const user = await get('SELECT id, email FROM users WHERE id = ?', [userId]);
@@ -246,6 +262,7 @@ async function resetPasswordByAdmin(userId, newPassword) {
 
 module.exports = {
   LOGIN_DAYS,
+  MIN_PASSWORD_LENGTH,
   normalizeEmail,
   isValidEmail,
   createUser,

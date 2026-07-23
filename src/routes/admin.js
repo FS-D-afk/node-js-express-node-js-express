@@ -199,7 +199,6 @@ router.get('/proofs/:id', requireAdmin, async (req, res, next) => {
   }
 });
 
-
 router.get('/users', requireAdmin, async (req, res, next) => {
   try {
     const search = String(req.query.search || '').trim();
@@ -248,8 +247,8 @@ router.post('/password', requireAdmin, async (req, res, next) => {
       req.session.flash = { type: 'error', message: '当前密码不正确。' };
       return res.redirect('/admin/password');
     }
-    if (!req.body.new_password || req.body.new_password.length < 6) {
-      req.session.flash = { type: 'error', message: '新密码至少 6 位。' };
+    if (!req.body.new_password || req.body.new_password.length < 12) {
+      req.session.flash = { type: 'error', message: '新密码至少 12 位。' };
       return res.redirect('/admin/password');
     }
     const passwordHash = await bcrypt.hash(req.body.new_password, 10);

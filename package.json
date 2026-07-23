@@ -1,12 +1,12 @@
 {
   "name": "campus-digital-vend",
   "version": "1.2.1",
-  "description": "Local campus digital materials vending system with screenshot OCR payment confirmation.",
+  "description": "Local campus digital materials vending system with manual payment review.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node scripts/smoke-test.js"
+    "test": "node scripts/smoke-test.js && node scripts/account-security-test.js"
   },
   "keywords": [],
   "author": "",

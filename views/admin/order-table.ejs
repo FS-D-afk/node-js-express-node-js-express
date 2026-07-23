@@ -2,7 +2,7 @@
   <thead>
     <tr>
       <th>订单</th>
-      <th>商品</th>
+      <th>商品与截图审核</th>
       <th>用户账号</th>
       <th>金额</th>
       <th>状态</th>
@@ -18,6 +18,12 @@
           <strong><%= order.product_title %></strong>
           <% if (order.proof_id) { %>
             <div class="muted-line">识别金额：<%= order.proof_amount !== null && order.proof_amount !== undefined ? '￥' + Number(order.proof_amount).toFixed(2) : '无' %></div>
+            <% if (order.proof_transaction_no) { %>
+              <div class="muted-line">交易单号：<%= order.proof_transaction_no %></div>
+            <% } %>
+            <% if (order.proof_reason) { %>
+              <div class="muted-line"><%= order.proof_reason %></div>
+            <% } %>
           <% } %>
         </td>
         <td><%= order.user_email || '历史游客订单' %></td>
@@ -29,7 +35,7 @@
             <a href="/admin/proofs/<%= order.proof_id %>" target="_blank">截图</a>
           <% } %>
           <% if (['pending', 'review'].includes(order.status)) { %>
-            <form method="post" action="/admin/orders/<%= order.id %>/confirm"><button type="submit">确认</button></form>
+            <form method="post" action="/admin/orders/<%= order.id %>/confirm"><button type="submit">人工确认</button></form>
             <form method="post" action="/admin/orders/<%= order.id %>/cancel"><button class="danger" type="submit">取消</button></form>
           <% } %>
           <% if (order.status === 'paid') { %>

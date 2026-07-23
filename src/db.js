@@ -3,7 +3,7 @@ const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcryptjs');
 
-const DEFAULT_ANNOUNCEMENT = '所有用户按商品标价支付。上传清晰的付款截图后，系统只核对截图金额与订单金额，匹配即可自动发货。';
+const DEFAULT_ANNOUNCEMENT = '付款截图仅用于辅助审核，上传后统一进入待审核状态，最终由管理员确认付款后发货。';
 
 const projectRoot = path.resolve(__dirname, '..');
 const configuredDbPath = process.env.DATABASE_PATH || 'data/app.db';
@@ -138,7 +138,6 @@ async function syncProductsFromLegacySkus() {
   }
 }
 
-
 function normalizeStoredProofPath(imagePath) {
   const normalized = String(imagePath || '').replace(/\\/g, '/');
   const fileName = path.posix.basename(normalized);
@@ -154,6 +153,20 @@ async function normalizeStoredProofPaths() {
       await run('UPDATE payment_proofs SET image_path = ? WHERE id = ?', [normalizedPath, proof.id]);
     }
   }
+}
+
+async function ensureInitialAdmin() {
+  const existingAdmin = await get('SELECT id FROM admins LIMIT 1');
+  if (existingAdmin) return;
+
+  const username = String(process.env.ADMIN_USERNAME || '').trim();
+  const password = String(process.env.ADMIN_PASSWORD || '');
+  if (!username || password.length < 12) {
+    throw new Error('首次启动需要在 .env 中配置 ADMIN_USERNAME 和至少 12 位的 ADMIN_PASSWORD。');
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  await run('INSERT INTO admins (username, password_hash) VALUES (?, ?)', [username, passwordHash]);
 }
 
 async function initDb() {
@@ -310,16 +323,10 @@ async function initDb() {
   await run(`CREATE UNIQUE INDEX IF NOT EXISTS uq_orders_user_product_active
     ON orders(user_id, product_id)
     WHERE user_id IS NOT NULL AND status IN ('pending', 'review')`);
-  await run(`CREATE UNIQUE INDEX IF NOT EXISTS uq_payment_proofs_transaction_no
-    ON payment_proofs(transaction_no)
-    WHERE transaction_no <> ''`);
+  await run('DROP INDEX IF EXISTS uq_payment_proofs_transaction_no');
+  await run('CREATE INDEX IF NOT EXISTS idx_payment_proofs_transaction_no ON payment_proofs(transaction_no)');
 
-  const admin = await get('SELECT id FROM admins WHERE username = ?', ['admin']);
-  if (!admin) {
-    const passwordHash = await bcrypt.hash('admin123', 10);
-    await run('INSERT INTO admins (username, password_hash) VALUES (?, ?)', ['admin', passwordHash]);
-  }
-
+  await ensureInitialAdmin();
   await seedDefaults();
   await syncAnnouncementSetting();
   await syncProductsFromLegacySkus();
@@ -360,7 +367,17 @@ async function syncAnnouncementSetting() {
   const row = await get("SELECT value FROM settings WHERE key = 'announcement'");
   if (!row || !row.value) return;
 
-  const legacyHints = ['准确金额支付', '自动识别发货', '付款请按页面显示的准确金额支付', '支付金额和发货规则', '交易单号', '包含支付成功'];
+  const legacyHints = [
+    '准确金额支付',
+    '自动识别发货',
+    '付款请按页面显示的准确金额支付',
+    '支付金额和发货规则',
+    '交易单号',
+    '包含支付成功',
+    '匹配即可自动发货',
+    '只核对截图金额',
+    '金额一致即可自动发货',
+  ];
   if (legacyHints.some((hint) => row.value.includes(hint))) {
     await run("UPDATE settings SET value = ? WHERE key = 'announcement'", [DEFAULT_ANNOUNCEMENT]);
   }

@@ -3,10 +3,10 @@ const fs = require('fs');
 const path = require('path');
 const { execFile } = require('child_process');
 
-const { run } = require('../db');
+const { get, run } = require('../db');
 const { toStoredProofPath } = require('../upload');
 const { nearlyEqualMoney } = require('../utils/money');
-const { markPaid, markReview } = require('./orders');
+const { markReview } = require('./orders');
 
 function sha256File(filePath) {
   const hash = crypto.createHash('sha256');
@@ -93,13 +93,11 @@ function findMatchedAmount(text, expectedAmount) {
   const normalized = normalizeOcrText(text);
   const compact = compactOcrText(text);
 
-  // 优先匹配带两位小数的金额，避免把状态栏时间、电量等整数误判为付款金额。
   const decimalPattern = new RegExp(`(?:^|[^\\d])${escapeRegExp(yuan)}\\.${escapeRegExp(cents)}(?!\\d)`);
   if (decimalPattern.test(compact)) {
     return targetAmount;
   }
 
-  // OCR 偶尔会漏掉小数点；只有紧邻货币符号或金额关键词时才接受整数形式。
   if (cents === '00') {
     const amountContextPattern = new RegExp(
       `(?:￥|¥|人民币|支付金额|付款金额|实付金额|金额)[:：]?${escapeRegExp(yuan)}(?:元)?(?!\\d)`
@@ -109,7 +107,6 @@ function findMatchedAmount(text, expectedAmount) {
     }
   }
 
-  // 兼容常规 OCR 输出，但只接受原文中明确出现小数的候选金额。
   const decimalCandidates = normalized.match(/(?:\d{1,3}(?:,\d{3})+|\d+)\.\d{1,2}/g) || [];
   const matched = decimalCandidates
     .map((value) => Number(value.replace(/,/g, '')))
@@ -118,7 +115,6 @@ function findMatchedAmount(text, expectedAmount) {
   return matched === undefined ? null : targetAmount;
 }
 
-// 保留这两个辅助函数，兼容旧代码和旧测试；新版自动通过不再依赖它们。
 function hasPaymentSuccess(text) {
   const compact = compactOcrText(text);
   return /(支付成功|交易成功|付款成功|已支付|对方已收款)/.test(compact);
@@ -139,63 +135,73 @@ function extractTransactionNo(text) {
   return candidates.sort((a, b) => b.length - a.length)[0];
 }
 
-async function saveProof(order, file) {
+async function saveProof(order, file, { recognize = recognizeText } = {}) {
   const fileHash = sha256File(file.path);
+  const previousProof = await get(
+    'SELECT id, order_id FROM payment_proofs WHERE image_hash = ? ORDER BY id DESC LIMIT 1',
+    [fileHash]
+  );
+  const reusedAcrossOrders = Boolean(
+    previousProof && Number(previousProof.order_id) !== Number(order.id)
+  );
 
   let text = '';
   let ocrError = '';
   try {
-    text = await recognizeText(file.path);
+    text = await recognize(file.path);
   } catch (error) {
     ocrError = error.stderr || error.message;
   }
 
   const matchedAmount = findMatchedAmount(text, order.pay_amount);
-  const accepted = Boolean(matchedAmount);
+  const transactionNo = extractTransactionNo(text) || '';
 
   let reason;
-  if (accepted) {
-    reason = '识别金额与订单金额一致，自动通过';
-  } else if (ocrError) {
-    reason = `OCR 识别失败：${String(ocrError).slice(0, 180)}`;
+  if (ocrError) {
+    reason = `OCR 识别失败，等待人工审核：${String(ocrError).slice(0, 180)}`;
+  } else if (matchedAmount) {
+    reason = '已识别到与订单一致的金额，等待管理员确认';
   } else {
-    reason = '未识别到与订单一致的支付金额';
+    reason = '未识别到与订单一致的支付金额，等待人工审核';
+  }
+  if (reusedAcrossOrders) {
+    reason += '；警告：该截图曾用于其他订单';
   }
 
   const result = await run(
     `INSERT INTO payment_proofs
      (order_id, image_path, image_hash, ocr_text, recognized_amount, transaction_no, status, reason)
-     VALUES (?, ?, ?, ?, ?, '', ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`,
     [
       order.id,
       toStoredProofPath(file),
       fileHash,
       text,
       matchedAmount || null,
-      accepted ? 'accepted' : 'pending',
+      transactionNo,
       reason,
     ]
   );
-  const proofId = result.id;
-
-  if (accepted) {
-    await markPaid(order.id, proofId);
-    return {
-      status: 'accepted',
-      reason: '付款金额校验成功，订单已自动发货。',
-      proofId,
-      text,
-    };
-  }
 
   await markReview(order.id);
+
+  let userMessage;
+  if (matchedAmount) {
+    userMessage = '已识别到与订单一致的金额，截图已提交，等待管理员确认。';
+  } else if (ocrError) {
+    userMessage = '截图已提交，但自动识别失败，请等待管理员人工审核。';
+  } else {
+    userMessage = `截图已提交，但未识别到订单金额（￥${Number(order.pay_amount).toFixed(2)}），请等待管理员人工审核。`;
+  }
+
   return {
     status: 'pending',
-    reason: ocrError
-      ? '截图识别失败，请确认图片清晰后重新上传；如仍失败，请联系管理员人工确认。'
-      : `截图中未识别到订单金额（￥${Number(order.pay_amount).toFixed(2)}），请核对后重新上传。`,
-    proofId,
+    reason: userMessage,
+    proofId: result.id,
     text,
+    matchedAmount,
+    transactionNo,
+    reusedAcrossOrders,
   };
 }
 

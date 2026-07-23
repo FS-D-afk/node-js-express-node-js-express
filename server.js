@@ -1,5 +1,9 @@
 require('dotenv').config();
 
+const { validateRuntimeConfig } = require('./src/config');
+
+validateRuntimeConfig(process.env);
+
 const app = require('./src/app');
 const { initDb } = require('./src/db');
 const users = require('./src/services/users');

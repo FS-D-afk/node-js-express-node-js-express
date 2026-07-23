@@ -5,19 +5,27 @@ const session = require('express-session');
 const accountRoutes = require('./routes/account');
 const adminRoutes = require('./routes/admin');
 const storeRoutes = require('./routes/store');
+const { getSessionSecret, getTrustProxy } = require('./config');
+const { adminLoginRateLimit } = require('./middleware/admin-login-rate-limit');
+const { adminLoginTimingProtection } = require('./middleware/admin-login-timing');
+const { csrfProtection } = require('./middleware/csrf');
+const { securityHeaders } = require('./middleware/security-headers');
 const { getSettingMap } = require('./services/settings');
 const users = require('./services/users');
 const { randomToken } = require('./utils/tokens');
 
 const app = express();
+app.disable('x-powered-by');
 
-if (process.env.NODE_ENV === 'production') {
-  app.set('trust proxy', 1);
+const trustProxy = getTrustProxy(process.env);
+if (trustProxy) {
+  app.set('trust proxy', trustProxy);
 }
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'views'));
 
+app.use(securityHeaders);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use('/public', express.static(path.join(__dirname, '..', 'public')));
@@ -25,7 +33,7 @@ app.use('/public', express.static(path.join(__dirname, '..', 'public')));
 app.use(
   session({
     name: 'campus_vend.sid',
-    secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
+    secret: getSessionSecret(process.env),
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -36,6 +44,9 @@ app.use(
     },
   })
 );
+
+app.use(csrfProtection);
+app.use('/admin/login', adminLoginRateLimit, adminLoginTimingProtection);
 
 function readCookie(req, name) {
   const cookieHeader = String(req.headers.cookie || '');

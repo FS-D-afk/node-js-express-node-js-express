@@ -1,3 +1,19 @@
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+if (/^[a-f0-9]{64}$/i.test(csrfToken)) {
+  document.querySelectorAll('form').forEach((form) => {
+    if (String(form.method || 'get').toLowerCase() !== 'post') return;
+
+    let input = form.querySelector('input[name="_csrf"]');
+    if (!input) {
+      input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = '_csrf';
+      form.prepend(input);
+    }
+    input.value = csrfToken;
+  });
+}
+
 document.querySelectorAll('[data-copy]').forEach((button) => {
   const originalLabel = button.textContent;
   button.addEventListener('click', async () => {
@@ -70,7 +86,6 @@ if (modalBackdrop && modalCloseButton) {
     modalBackdrop.remove();
   });
 }
-
 
 document.querySelectorAll('[data-confirm]').forEach((element) => {
   element.addEventListener('click', (event) => {

@@ -1,12 +1,15 @@
 const express = require('express');
 
+const {
+  clearLoginFailures,
+  isLoginLimited,
+  isRegistrationLimited,
+  registerLoginFailure,
+  registerRegistrationAttempt,
+} = require('../middleware/account-rate-limit');
 const users = require('../services/users');
 
 const router = express.Router();
-
-const loginAttempts = new Map();
-const MAX_ATTEMPTS = 8;
-const WINDOW_MS = 15 * 60 * 1000;
 
 function safeNext(value, fallback = '/') {
   const next = String(value || '');
@@ -26,34 +29,8 @@ function accountCookieOptions(maxAge) {
   };
 }
 
-function attemptKey(req, email) {
-  return `${req.ip || 'unknown'}:${users.normalizeEmail(email)}`;
-}
-
-function isRateLimited(req, email) {
-  const key = attemptKey(req, email);
-  const now = Date.now();
-  const current = loginAttempts.get(key);
-  if (!current || current.startedAt + WINDOW_MS <= now) {
-    loginAttempts.set(key, { count: 0, startedAt: now });
-    return false;
-  }
-  return current.count >= MAX_ATTEMPTS;
-}
-
-function registerFailure(req, email) {
-  const key = attemptKey(req, email);
-  const now = Date.now();
-  const current = loginAttempts.get(key);
-  if (!current || current.startedAt + WINDOW_MS <= now) {
-    loginAttempts.set(key, { count: 1, startedAt: now });
-  } else {
-    current.count += 1;
-  }
-}
-
-function clearFailures(req, email) {
-  loginAttempts.delete(attemptKey(req, email));
+function setRetryAfter(res, seconds) {
+  res.setHeader('Retry-After', String(seconds));
 }
 
 async function finishLogin(req, res, user, nextPath) {
@@ -84,19 +61,20 @@ router.post('/login', async (req, res, next) => {
     const email = users.normalizeEmail(req.body.email);
     const nextPath = safeNext(req.body.next);
 
-    if (isRateLimited(req, email)) {
+    if (isLoginLimited(req, email)) {
+      setRetryAfter(res, 15 * 60);
       req.session.flash = { type: 'error', message: '登录尝试次数过多，请 15 分钟后再试。' };
       return res.redirect(`/login?next=${encodeURIComponent(nextPath)}&email=${encodeURIComponent(email)}`);
     }
 
     const user = await users.verifyCredentials(email, req.body.password || '');
     if (!user) {
-      registerFailure(req, email);
+      registerLoginFailure(req, email);
       req.session.flash = { type: 'error', message: '邮箱或密码错误。' };
       return res.redirect(`/login?next=${encodeURIComponent(nextPath)}&email=${encodeURIComponent(email)}`);
     }
 
-    clearFailures(req, email);
+    clearLoginFailures(req, email);
     return finishLogin(req, res, user, nextPath);
   } catch (error) {
     next(error);
@@ -117,6 +95,13 @@ router.post('/register', async (req, res, next) => {
     const email = users.normalizeEmail(req.body.email);
     const nextPath = safeNext(req.body.next);
 
+    if (isRegistrationLimited(req)) {
+      setRetryAfter(res, 60 * 60);
+      req.session.flash = { type: 'error', message: '注册尝试过于频繁，请一小时后再试。' };
+      return res.redirect(`/register?next=${encodeURIComponent(nextPath)}&email=${encodeURIComponent(email)}`);
+    }
+    registerRegistrationAttempt(req);
+
     if (req.body.password !== req.body.password_confirm) {
       req.session.flash = { type: 'error', message: '两次输入的密码不一致。' };
       return res.redirect(`/register?next=${encodeURIComponent(nextPath)}&email=${encodeURIComponent(email)}`);
@@ -125,13 +110,15 @@ router.post('/register', async (req, res, next) => {
     const user = await users.createUser(email, req.body.password || '');
     return finishLogin(req, res, user, nextPath);
   } catch (error) {
-    req.session.flash = { type: 'error', message: error.message || '注册失败，请稍后重试。' };
     const nextPath = safeNext(req.body.next);
     const email = users.normalizeEmail(req.body.email);
+    const message = error.code === 'EMAIL_ALREADY_EXISTS'
+      ? '无法创建账号，请检查输入，或尝试使用该邮箱登录。'
+      : (error.message || '注册失败，请稍后重试。');
+    req.session.flash = { type: 'error', message };
     res.redirect(`/register?next=${encodeURIComponent(nextPath)}&email=${encodeURIComponent(email)}`);
   }
 });
-
 
 router.get('/account/password', (req, res) => {
   if (!req.user) {

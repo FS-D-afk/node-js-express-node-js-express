@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const { csrfProtectionAfterMultipart } = require('./middleware/csrf');
 const { randomToken } = require('./utils/tokens');
 
 const projectRoot = path.resolve(__dirname, '..');
@@ -59,7 +60,20 @@ function imageFilter(req, file, cb) {
   cb(null, true);
 }
 
-const proofUpload = multer({
+function protectMultipartUpload(upload) {
+  return {
+    single(fieldName) {
+      const parseUpload = upload.single(fieldName);
+      return (req, res, next) => {
+        parseUpload(req, res, (uploadError) => {
+          csrfProtectionAfterMultipart(req, res, () => next(uploadError || undefined));
+        });
+      };
+    },
+  };
+}
+
+const proofUpload = protectMultipartUpload(multer({
   storage: multer.diskStorage({
     destination: proofDir,
     filename(req, file, cb) {
@@ -69,9 +83,9 @@ const proofUpload = multer({
   }),
   fileFilter: imageFilter,
   limits: { fileSize: 5 * 1024 * 1024 },
-});
+}));
 
-const qrUpload = multer({
+const qrUpload = protectMultipartUpload(multer({
   storage: multer.diskStorage({
     destination: qrDir,
     filename(req, file, cb) {
@@ -81,9 +95,9 @@ const qrUpload = multer({
   }),
   fileFilter: imageFilter,
   limits: { fileSize: 3 * 1024 * 1024 },
-});
+}));
 
-const productDetailUpload = multer({
+const productDetailUpload = protectMultipartUpload(multer({
   storage: multer.diskStorage({
     destination: productDetailDir,
     filename(req, file, cb) {
@@ -93,7 +107,7 @@ const productDetailUpload = multer({
   }),
   fileFilter: imageFilter,
   limits: { fileSize: 5 * 1024 * 1024 },
-});
+}));
 
 module.exports = {
   proofUpload,
